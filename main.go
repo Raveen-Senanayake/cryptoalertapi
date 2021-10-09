@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -49,13 +51,31 @@ func analyseCoinGeckoReturn(coin_gecko_return_object CoinGeckoReturnObject , fia
 }
 
 
-// convert currency to the required balye
+type CurrencyExchangeReturnObject struct {
+	Rate 	string 	`json:"name"`
 
-func convertToRequiredFiatCurrency(usdt_value float64, required_fiat_type string )  int  {
+}
+func convertToRequiredFiatCurrency(usdt_value float64, required_fiat_type string )  float64  {
+	
+	s := fmt.Sprintf("%f", usdt_value)
+	currency_exchange_api_call_link := "https://currency-exchange.p.rapidapi.com/exchange?to="+required_fiat_type+"&from=USD&Q=1"+s;
+	
+	// make api call
+	req, _ := http.NewRequest("GET", currency_exchange_api_call_link , nil)
 
-	currency_exchange_api_call_link := "https://currency-exchange.p.rapidapi.com/exchange?to="+required_fiat_type+"&from=USD&Q=";
+	req.Header.Add("x-rapidapi-host", "currency-exchange.p.rapidapi.com")
+	req.Header.Add("x-rapidapi-key", "e152fe0ac7msh82be55889f4e392p160cd0jsn2ee8bf76ee34")
+	res, _ := http.DefaultClient.Do(req)
 
+	defer res.Body.Close()
+	rate, _ := ioutil.ReadAll(res.Body)
 
+	rate_in_string := string(rate)
+	rate_in_number, _ := strconv.ParseFloat(rate_in_string,64)
+
+	converted_value := rate_in_number * usdt_value
+
+	return converted_value
 }
 
 
@@ -73,7 +93,7 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 	//HTTP CALL
 	 resp, err := http.Get(coin_gecko_call_url)
 	if err != nil {
-		fmt.Println("DJDJD")
+
 		c.IndentedJSON(http.StatusNotFound, gin.H{"coingecko" : "error"})
 	}
 
@@ -95,11 +115,11 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 				currency_usd_value := crypto_object_to_return.Last
 				required_fiat_type := fiat
 				converted_to_required_value :=  convertToRequiredFiatCurrency(currency_usd_value , required_fiat_type ) 
-				fmt.Println(converted_to_required_value)		
+				fmt.Println("dhdhdh",converted_to_required_value)		
 			}
 		} 
 
-		fmt.Println(crypto_object_to_return , extracted_fiat)
+		// fmt.Println(crypto_object_to_return , extracted_fiat)
 		c.IndentedJSON(http.StatusOK, coin_gecko_return_object)
 
 	}

@@ -19,10 +19,19 @@ type CoinGeckoTicker struct {
 	TargetCoinId string `json:"target_coin_id"`
 }
 
+
 type CoinGeckoReturnObject struct {
 	Name 	string 	`json:"name"`
 	Ticker	[]CoinGeckoTicker `json:"tickers"`
 
+}
+
+func UpdateLast (updateItem CoinGeckoTicker , currencyValue float64){
+	updateItem.Last = currencyValue
+}
+
+func UpdateTarget  (updateItem CoinGeckoTicker , currencyName string){
+	updateItem.Target = currencyName
 }
 
 //check if coingecko currency has required object , if so return the object if not return in USD
@@ -51,10 +60,7 @@ func analyseCoinGeckoReturn(coin_gecko_return_object CoinGeckoReturnObject , fia
 }
 
 
-type CurrencyExchangeReturnObject struct {
-	Rate 	string 	`json:"name"`
-
-}
+// convert fiat currency
 func convertToRequiredFiatCurrency(usdt_value float64, required_fiat_type string )  float64  {
 	
 	s := fmt.Sprintf("%f", usdt_value)
@@ -80,6 +86,7 @@ func convertToRequiredFiatCurrency(usdt_value float64, required_fiat_type string
 
 
 func getCurrencyCurrentPrice(c* gin.Context) {
+	
 	id := c.Param("id")
 	fiat := c.Query("fiat")
 	exchange := c.Query("exchange")
@@ -115,11 +122,14 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 				currency_usd_value := crypto_object_to_return.Last
 				required_fiat_type := fiat
 				converted_to_required_value :=  convertToRequiredFiatCurrency(currency_usd_value , required_fiat_type ) 
-				fmt.Println("dhdhdh",converted_to_required_value)		
+				
+				UpdateLast(crypto_object_to_return, converted_to_required_value )
+				UpdateTarget(crypto_object_to_return, fiat)
+				fmt.Println("dhdhdh",crypto_object_to_return)		
 			}
 		} 
 
-		// fmt.Println(crypto_object_to_return , extracted_fiat)
+		fmt.Println(crypto_object_to_return , extracted_fiat)
 		c.IndentedJSON(http.StatusOK, coin_gecko_return_object)
 
 	}

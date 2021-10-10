@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
 
 type CoinGeckoTicker struct {
 	Base string `json:"base"` 
@@ -26,12 +28,15 @@ type CoinGeckoReturnObject struct {
 
 }
 
-func UpdateLast (updateItem CoinGeckoTicker , currencyValue float64){
+func UpdateLast (updateItem CoinGeckoTicker , currencyValue float64) CoinGeckoTicker {
 	updateItem.Last = currencyValue
+	return updateItem
+	
 }
 
-func UpdateTarget  (updateItem CoinGeckoTicker , currencyName string){
+func UpdateTarget  (updateItem CoinGeckoTicker , currencyName string) CoinGeckoTicker {
 	updateItem.Target = currencyName
+	return updateItem
 }
 
 //check if coingecko currency has required object , if so return the object if not return in USD
@@ -41,12 +46,12 @@ func analyseCoinGeckoReturn(coin_gecko_return_object CoinGeckoReturnObject , fia
 	var converted_crypto_object_usdt CoinGeckoTicker
 	return_fiat_type := "USDT"
 	ticker_array := coin_gecko_return_object.Ticker	
-	
+
 
 	for _ , s:= range ticker_array {
 		if s.Target == fiat {
 			converted_cryto_object = s
-			return converted_cryto_object , s.Base
+			return converted_cryto_object , s.Target
 		}
 		if s.Target == "USDT" {
 			converted_crypto_object_usdt  = s	
@@ -123,15 +128,17 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 				required_fiat_type := fiat
 				converted_to_required_value :=  convertToRequiredFiatCurrency(currency_usd_value , required_fiat_type ) 
 				
-				UpdateLast(crypto_object_to_return, converted_to_required_value )
-				UpdateTarget(crypto_object_to_return, fiat)
-				fmt.Println("dhdhdh",crypto_object_to_return)		
-			}
-		} 
 
-		fmt.Println(crypto_object_to_return , extracted_fiat)
-		c.IndentedJSON(http.StatusOK, coin_gecko_return_object)
+				// update object
+				itemWithLastUpdated := UpdateLast(crypto_object_to_return, converted_to_required_value )
+				itemWithTargetUpdated := UpdateTarget(itemWithLastUpdated , fiat)
+				c.IndentedJSON(http.StatusOK, itemWithTargetUpdated)
 
+			} ;
+		} else {
+			c.IndentedJSON(http.StatusOK, crypto_object_to_return)
+
+		}
 	}
 }
 
@@ -140,6 +147,12 @@ func main() {
 
 	router := gin.Default()
 	router.GET("/currency/:id" , getCurrencyCurrentPrice)
-    router.Run("localhost:8080")
+
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "5000"
+	}
+    router.Run(":"+port)
 
 }

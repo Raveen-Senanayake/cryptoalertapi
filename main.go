@@ -4,15 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aquasecurity/lmdrouter"
+
+	"github.com/apex/gateway"
 	"github.com/gin-gonic/gin"
 )
 
-var router *lmdrouter.Router
+func inLambda() bool {
+	if lambdaTaskRoot := os.Getenv("LAMBDA_TASK_ROOT"); lambdaTaskRoot != "" {
+	   return true
+	}
+	return false
+ }
+ 
+
+
 
 type CoinGeckoTicker struct {
 	Base string `json:"base"` 
@@ -145,20 +154,30 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 }
 
 
-func init(){
-	
-}
-
-func main() {
+func setupRouter() *gin.Engine {
 
 	router := gin.Default()
 	router.GET("/currency/:id" , getCurrencyCurrentPrice)
 
-	port := os.Getenv("PORT")
+ 
+	return router
+ }
 
-	if port == "" {
-		port = "5000"
-	}
-    router.Run(":"+port)
+func main() {
 
+
+// 	port := os.Getenv("PORT")
+
+// 	if port == "" {
+// 		port = "5000"
+// 	}
+//     router.Run(":"+port
+// )
+	if inLambda() {
+		fmt.Println("running aws lambda in aws")
+		log.Fatal(gateway.ListenAndServe(":8080", setupRouter()))
+	 } else {
+		fmt.Println("running aws lambda in local")
+		log.Fatal(http.ListenAndServe(":8080", setupRouter()))
+	 }
 }

@@ -2,10 +2,14 @@ module cryptoapi/crypto-alert-api
 
 go 1.17
 
-require github.com/gin-gonic/gin v1.7.4
+require (
+	github.com/apex/gateway v1.1.2
+	github.com/gin-gonic/gin v1.7.4
+)
 
 require (
 	github.com/0xAX/notificator v0.0.0-20210731104411-c42e3d4a43ee // indirect
+	github.com/aquasecurity/lmdrouter v0.4.0 // indirect
 	github.com/aws/aws-lambda-go v1.27.0 // indirect
 	github.com/codegangsta/envy v0.0.0-20141216192214-4b78388c8ce4 // indirect
 	github.com/codegangsta/gin v0.0.0-20171026143024-cafe2ce98974 // indirect
@@ -27,6 +31,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect

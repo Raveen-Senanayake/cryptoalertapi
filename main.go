@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aquasecurity/lmdrouter"
 	"github.com/gin-gonic/gin"
 )
 
+var router *lmdrouter.Router
 
 type CoinGeckoTicker struct {
 	Base string `json:"base"` 
@@ -142,6 +144,10 @@ func getCurrencyCurrentPrice(c* gin.Context) {
 	}
 }
 
+
+func init(){
+	
+}
 
 func main() {
 

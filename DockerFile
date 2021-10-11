@@ -8,7 +8,7 @@ LABEL maintainer ="Raveen <raveenseshan@live.com"
 WORKDIR /apifile
 
 # Copy Go Modules dependency requirements file
-COPY go.md .
+COPY go.mod .
 
 #Copy Go Modules expected hashes file
 COPY go.sum .
@@ -33,4 +33,4 @@ RUN find . -name "*.go" -type f -delete
 EXPOSE $PORT
 
 #Run the app dependencies
-CMD ["./golang-gin-poc"]
+CMD ["./crypto-alert-api"]

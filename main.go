@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/apex/gateway"
 	"github.com/gin-gonic/gin"
@@ -161,19 +162,30 @@ func getCurrencyCurrentPrice(c *gin.Context) {
 
 	coinMap := make(map[int]*CoinGeckoTicker, len(cryptoList))
 
+	wg := sync.WaitGroup{}
+
 	for i := 0; i < len(cryptoList); i++ {
 
-		id := cryptoList[i]
-		exchange := exchangeList[i]
+		wg.Add(1)
 
-		coin, err := getCoinGeckoUnitPrice(id, exchange, fiat, c)
-		if err != nil {
-			continue
-		}
+		go func(i int) {
+			id := cryptoList[i]
+			exchange := exchangeList[i]
+			coin, err := getCoinGeckoUnitPrice(id, exchange, fiat, c)
+			if err != nil {
+				return
+			}
+			coinMap[i] = coin
 
-		coinMap[i] = coin
+			fmt.Printf("Fetched")
+			wg.Done()
+
+		}(i)
 
 	}
+
+	wg.Wait()
+
 	c.IndentedJSON(http.StatusOK, coinMap)
 
 }

@@ -38,6 +38,11 @@ type CoinGeckoReturnObject struct {
 	Ticker []CoinGeckoTicker `json:"tickers"`
 }
 
+// Simple Api calls
+type SimpleCoinGeckoCall struct {
+	CustomFields map[string]interface{}
+}
+
 // UpdateLast update the currenacy value of the object
 func UpdateLast(updateItem *CoinGeckoTicker, currencyValue float64) {
 	updateItem.Last = currencyValue
@@ -79,7 +84,6 @@ func analyseCoinGeckoReturn(coinGeckoReturnObject CoinGeckoReturnObject, fiat st
 // convert fiat currency
 func convertToRequiredFiatCurrency(usdtValue float64, requiredFiatType string, c *gin.Context) float64 {
 
-	// s := fmt.Sprintf("%f", usdt_value)
 	currencyExchangeAPICALLLink := "https://currency-exchange.p.rapidapi.com/exchange?to=" + requiredFiatType + "&from=USD=1"
 
 	// make api call
@@ -112,6 +116,8 @@ func getCoinGeckoUnitPrice(id string, exchange string, fiat string, c *gin.Conte
 
 	response, err := http.Get(coinGeckoCallURL)
 	if err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"coingecko": "Coin Gecko Url Error"})
+
 		return nil, err
 
 	}
@@ -127,6 +133,44 @@ func getCoinGeckoUnitPrice(id string, exchange string, fiat string, c *gin.Conte
 	}
 
 	returnTickerObject := *coinGeckoReturnObject
+
+	if len(returnTickerObject.Ticker) == 0 {
+		baseCoinGeckoUrl := "https://api.coingecko.com/api/v3/simple/price?ids=" + id + "&vs_currencies=" + fiat
+		response, err := http.Get(baseCoinGeckoUrl)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"coingecko": "Coin Gecko Url Error", "Error": err.Error()})
+			return nil, err
+
+		}
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"coingecko": "general coin price indicator error"})
+			return nil, err
+		}
+
+		jsonMap := make(map[string]interface{})
+		erro := json.Unmarshal([]byte(bodyBytes), &jsonMap)
+		if erro != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"UnpackJsonMap": "general coin price indicator error"})
+			return nil, err
+		}
+
+		// extract price
+		var price float64
+		for _, value := range jsonMap {
+			hh := value.(interface{}).(map[string]interface{})
+			price = hh[strings.ToLower(fiat)].(float64)
+
+		}
+
+		newCoinGeckoTicker := CoinGeckoTicker{id, strings.ToUpper(fiat), price, 0, id, ""}
+		arrayToInsert := make([]CoinGeckoTicker, 1)
+		arrayToInsert[0] = newCoinGeckoTicker
+		returnTickerObject = CoinGeckoReturnObject{"FTX", arrayToInsert}
+
+	}
+
 	cryptoObjectToReturn, extractedFiat := analyseCoinGeckoReturn(returnTickerObject, fiat)
 
 	if extractedFiat != fiat {
@@ -173,11 +217,11 @@ func getCurrencyCurrentPrice(c *gin.Context) {
 			exchange := exchangeList[i]
 			coin, err := getCoinGeckoUnitPrice(id, exchange, fiat, c)
 			if err != nil {
+				c.IndentedJSON(http.StatusNotFound, gin.H{"coingecko": "Go routine Error", "Error": err.Error()})
 				return
 			}
 			coinMap[i] = coin
 
-			fmt.Printf("Fetched")
 			wg.Done()
 
 		}(i)
@@ -187,7 +231,6 @@ func getCurrencyCurrentPrice(c *gin.Context) {
 	wg.Wait()
 
 	c.IndentedJSON(http.StatusOK, coinMap)
-
 }
 
 func setupRouter() *gin.Engine {
